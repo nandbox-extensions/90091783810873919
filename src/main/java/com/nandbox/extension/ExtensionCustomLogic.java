@@ -133,7 +133,13 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
         Integer chatSettings = incomingMsg.getChatSettings();
 
         if (text.equals("/list")) {
-            sendAdminText(chatId, "Listing is not supported by the current DatabaseService SDK in this environment. Use /get <id> if you have an ID.", userId, chatSettings, appId);
+            String reference = Utils.getUniqueId();
+            try {
+                DatabaseService.getInstance().list(api, TABLE_NAME, reference);
+                sendAdminText(chatId, "List requested.", userId, chatSettings, appId);
+            } catch (Exception e) {
+                sendAdminText(chatId, "List operation is not supported in the current environment.", userId, chatSettings, appId);
+            }
             return;
         }
 
@@ -169,14 +175,6 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
             return;
         }
 
-        JSONObject doc = null;
-
-        try {
-            doc = extensionDocResponse.getDoc();
-        } catch (Exception e) {
-            doc = null;
-        }
-
         String appId = null;
         try {
             appId = extensionDocResponse.getAppId();
@@ -184,6 +182,23 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
             appId = null;
         }
 
+        JSONArray docs = null;
+        try {
+            docs = extensionDocResponse.getDocs();
+        } catch (Exception e) {
+            docs = null;
+        }
+        if (docs != null) {
+            sendDocsListToAdmin(docs, appId);
+            return;
+        }
+
+        JSONObject doc = null;
+        try {
+            doc = extensionDocResponse.getDoc();
+        } catch (Exception e) {
+            doc = null;
+        }
         if (doc != null) {
             sendDocToAdmin(doc, appId);
             return;
@@ -258,6 +273,43 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
             sb.append("\n\nPayload:\n").append(String.valueOf(payload));
         } else {
             sb.append("\n\nPayload: (empty)");
+        }
+
+        sendTextToAdmin(sb.toString(), appId);
+    }
+
+    private void sendDocsListToAdmin(JSONArray docs, String appId) {
+        if (docs == null || docs.size() == 0) {
+            sendTextToAdmin("No records found.", appId);
+            return;
+        }
+
+        StringBuffer sb = new StringBuffer();
+        sb.append("Records found: ").append(docs.size());
+
+        int limit = docs.size();
+        if (limit > 20) {
+            limit = 20;
+        }
+
+        for (int i = 0; i < limit; i++) {
+            Object item = docs.get(i);
+            sb.append("\n\n").append(i + 1).append(") ");
+
+            if (item instanceof JSONObject) {
+                JSONObject jo = (JSONObject) item;
+                Object id = jo.get("_id");
+                if (id == null) {
+                    id = jo.get("id");
+                }
+                sb.append("ID: ").append(id != null ? String.valueOf(id) : "(unknown)");
+            } else {
+                sb.append(String.valueOf(item));
+            }
+        }
+
+        if (docs.size() > limit) {
+            sb.append("\n\nShowing first ").append(limit).append(" records.");
         }
 
         sendTextToAdmin(sb.toString(), appId);
