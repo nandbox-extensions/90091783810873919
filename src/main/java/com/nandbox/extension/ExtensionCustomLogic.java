@@ -23,6 +23,10 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
     private static final String TABLE_NAME = "google_form_responses";
     private static final String ADMIN_ID = "90092883306759582";
 
+    private String adminChatId;
+    private String adminAppId;
+    private Integer adminChatSettings;
+
     public static void main(String[] args) throws Exception {
         String TOKEN = "";
         Properties properties = new Properties();
@@ -133,6 +137,10 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
         Integer chatSettings = incomingMsg.getChatSettings();
 
         if (text.equals("/list")) {
+            this.adminChatId = chatId;
+            this.adminAppId = appId;
+            this.adminChatSettings = chatSettings;
+
             String reference = Utils.getUniqueId();
             try {
                 DatabaseService.getInstance().list(api, TABLE_NAME, reference);
@@ -149,6 +157,11 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
                 sendAdminText(chatId, "Usage: /get <id>", userId, chatSettings, appId);
                 return;
             }
+
+            this.adminChatId = chatId;
+            this.adminAppId = appId;
+            this.adminChatSettings = chatSettings;
+
             String reference = Utils.getUniqueId();
             DatabaseService.getInstance().get(api, id, TABLE_NAME, reference);
             return;
@@ -160,6 +173,11 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
                 sendAdminText(chatId, "Usage: /delete <id>", userId, chatSettings, appId);
                 return;
             }
+
+            this.adminChatId = chatId;
+            this.adminAppId = appId;
+            this.adminChatSettings = chatSettings;
+
             String reference = Utils.getUniqueId();
             DatabaseService.getInstance().delete(api, id, TABLE_NAME, reference);
             sendAdminText(chatId, "Delete requested for id: " + id, userId, chatSettings, appId);
@@ -213,27 +231,37 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
     }
 
     private void sendTextToAdmin(String text, String appId) {
-        String reference = Utils.getUniqueId();
+        if (api == null) {
+            return;
+        }
+
+        String targetChatId = adminChatId != null ? adminChatId : ADMIN_ID;
+        String targetAppId = adminAppId != null ? adminAppId : appId;
+        Integer targetChatSettings = adminChatSettings;
+
         try {
             api.sendText(
-                    ADMIN_ID,
+                    targetChatId,
                     text,
-                    reference,
+                    Utils.getUniqueId(),
                     null,
                     ADMIN_ID,
                     new Integer(0),
                     Boolean.FALSE,
+                    targetChatSettings,
                     null,
                     null,
                     null,
-                    null,
-                    appId
+                    targetAppId
             );
         } catch (Exception e) {
         }
     }
 
     private void sendAdminText(String chatId, String text, String userId, Integer chatSettings, String appId) {
+        if (api == null) {
+            return;
+        }
         String reference = Utils.getUniqueId();
         api.sendText(
                 chatId,
