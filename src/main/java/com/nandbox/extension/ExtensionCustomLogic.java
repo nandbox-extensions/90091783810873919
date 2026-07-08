@@ -144,9 +144,9 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
             String reference = Utils.getUniqueId();
             try {
                 DatabaseService.getInstance().list(api, TABLE_NAME, reference);
-                sendAdminText(chatId, "List requested.", userId, chatSettings, appId);
+                sendAdminText(chatId, "\u23F3 Request received. Fetching the latest records...", userId, chatSettings, appId);
             } catch (Exception e) {
-                sendAdminText(chatId, "List operation is not supported in the current environment.", userId, chatSettings, appId);
+                sendAdminText(chatId, "\u26A0\uFE0F Unable to list records in this environment.", userId, chatSettings, appId);
             }
             return;
         }
@@ -154,7 +154,7 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
         if (text.startsWith("/get")) {
             String id = parseSecondToken(text);
             if (id == null || id.length() == 0) {
-                sendAdminText(chatId, "Usage: /get <id>", userId, chatSettings, appId);
+                sendAdminText(chatId, "Usage:\n/get <id>", userId, chatSettings, appId);
                 return;
             }
 
@@ -164,13 +164,14 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
 
             String reference = Utils.getUniqueId();
             DatabaseService.getInstance().get(api, id, TABLE_NAME, reference);
+            sendAdminText(chatId, "\u23F3 Fetching record: " + id, userId, chatSettings, appId);
             return;
         }
 
         if (text.startsWith("/delete")) {
             String id = parseSecondToken(text);
             if (id == null || id.length() == 0) {
-                sendAdminText(chatId, "Usage: /delete <id>", userId, chatSettings, appId);
+                sendAdminText(chatId, "Usage:\n/delete <id>", userId, chatSettings, appId);
                 return;
             }
 
@@ -180,11 +181,11 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
 
             String reference = Utils.getUniqueId();
             DatabaseService.getInstance().delete(api, id, TABLE_NAME, reference);
-            sendAdminText(chatId, "Delete requested for id: " + id, userId, chatSettings, appId);
+            sendAdminText(chatId, "\uD83D\uDDD1\uFE0F Delete requested for ID: " + id, userId, chatSettings, appId);
             return;
         }
 
-        sendAdminText(chatId, "Commands:\n/list\n/get <id>\n/delete <id>", userId, chatSettings, appId);
+        sendAdminText(chatId, "Admin commands:\n/list\n/get <id>\n/delete <id>", userId, chatSettings, appId);
     }
 
     @Override
@@ -222,11 +223,11 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
             return;
         }
 
-        sendTextToAdmin("Database operation completed.", appId);
+        sendTextToAdmin("\u2705 Done.", appId);
     }
 
     private void notifyAdminNewResponse(String responseId, String appId) {
-        String msg = "New Google Form response received.\n" + "ID: " + responseId + "\n\n" + "Use: /get " + responseId + "";
+        String msg = "\uD83D\uDCE9 New Google Form response received\n" + "\n" + "ID: " + responseId + "\n" + "\n" + "View it with: /get " + responseId;
         sendTextToAdmin(msg, appId);
     }
 
@@ -281,45 +282,51 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
     private void sendDocToAdmin(JSONObject doc, String appId) {
         StringBuffer sb = new StringBuffer();
 
-        sb.append("--- Response Details ---");
+        sb.append("==============================");
+        sb.append("\n\uD83D\uDCDD Google Form Response");
+        sb.append("\n==============================");
 
         Object id = doc.get("_id");
         if (id == null) {
             id = doc.get("id");
         }
-        sb.append("\nID: ").append(id != null ? String.valueOf(id) : "(unknown)");
+        sb.append("\n\n\uD83C\uDD94 ID: ").append(id != null ? String.valueOf(id) : "(unknown)");
 
         Object receivedAt = doc.get("received_at");
         if (receivedAt != null) {
-            sb.append("\nReceived At: ").append(String.valueOf(receivedAt));
+            sb.append("\n\u23F0 Received At: ").append(String.valueOf(receivedAt));
         }
 
         Object payload = doc.get("payload");
+        sb.append("\n\n\uD83D\uDCE6 Payload:");
+        sb.append("\n------------------------------\n");
         if (payload != null) {
-            sb.append("\n\nPayload:\n").append(String.valueOf(payload));
+            sb.append(String.valueOf(payload));
         } else {
-            sb.append("\n\nPayload: (empty)");
+            sb.append("(empty)");
         }
-
-        sb.append("\n------------------------");
+        sb.append("\n------------------------------");
 
         sendTextToAdmin(sb.toString(), appId);
     }
 
     private void sendDocsListToAdmin(JSONArray docs, String appId) {
         if (docs == null || docs.size() == 0) {
-            sendTextToAdmin("No records found.", appId);
+            sendTextToAdmin("\u26A0\uFE0F No records found.", appId);
             return;
         }
-
-        StringBuffer sb = new StringBuffer();
-        sb.append("--- Records List ---");
-        sb.append("\nTotal: ").append(docs.size());
 
         int limit = docs.size();
         if (limit > 20) {
             limit = 20;
         }
+
+        StringBuffer sb = new StringBuffer();
+        sb.append("==============================");
+        sb.append("\n\uD83D\uDCCB Records List");
+        sb.append("\n==============================");
+        sb.append("\n\nTotal records: ").append(docs.size());
+        sb.append("\nShowing: ").append(limit).append(" (max 20)");
 
         for (int i = 0; i < limit; i++) {
             Object item = docs.get(i);
@@ -337,16 +344,17 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
                 if (receivedAt != null) {
                     sb.append("\n   received_at: ").append(String.valueOf(receivedAt));
                 }
+                sb.append("\n   view: /get ").append(id != null ? String.valueOf(id) : "");
             } else {
                 sb.append(String.valueOf(item));
             }
         }
 
         if (docs.size() > limit) {
-            sb.append("\n\nShowing first ").append(limit).append(" records.");
+            sb.append("\n\nNote: Only the first ").append(limit).append(" records are shown.");
         }
 
-        sb.append("\n--------------------");
+        sb.append("\n\nTip: Use /get <id> to view details.");
 
         sendTextToAdmin(sb.toString(), appId);
     }
