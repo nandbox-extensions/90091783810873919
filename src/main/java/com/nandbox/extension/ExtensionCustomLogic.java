@@ -226,7 +226,7 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
     }
 
     private void notifyAdminNewResponse(String responseId, String appId) {
-        String msg = "New Google Form response received. ID: " + responseId + "\nUse /get " + responseId + " to view.";
+        String msg = "New Google Form response received.\n" + "ID: " + responseId + "\n\n" + "Use: /get " + responseId + "";
         sendTextToAdmin(msg, appId);
     }
 
@@ -237,7 +237,6 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
 
         String targetChatId = adminChatId != null ? adminChatId : ADMIN_ID;
         String targetAppId = adminAppId != null ? adminAppId : appId;
-        Integer targetChatSettings = adminChatSettings;
 
         try {
             api.sendText(
@@ -248,7 +247,7 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
                     ADMIN_ID,
                     new Integer(0),
                     Boolean.FALSE,
-                    targetChatSettings,
+                    adminChatSettings,
                     null,
                     null,
                     null,
@@ -281,19 +280,18 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
 
     private void sendDocToAdmin(JSONObject doc, String appId) {
         StringBuffer sb = new StringBuffer();
+
+        sb.append("--- Response Details ---");
+
         Object id = doc.get("_id");
         if (id == null) {
             id = doc.get("id");
         }
-        if (id == null) {
-            id = "(unknown)";
-        }
-
-        sb.append("Response ID: ").append(String.valueOf(id));
+        sb.append("\nID: ").append(id != null ? String.valueOf(id) : "(unknown)");
 
         Object receivedAt = doc.get("received_at");
         if (receivedAt != null) {
-            sb.append("\nReceived at: ").append(String.valueOf(receivedAt));
+            sb.append("\nReceived At: ").append(String.valueOf(receivedAt));
         }
 
         Object payload = doc.get("payload");
@@ -302,6 +300,8 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
         } else {
             sb.append("\n\nPayload: (empty)");
         }
+
+        sb.append("\n------------------------");
 
         sendTextToAdmin(sb.toString(), appId);
     }
@@ -313,7 +313,8 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
         }
 
         StringBuffer sb = new StringBuffer();
-        sb.append("Records found: ").append(docs.size());
+        sb.append("--- Records List ---");
+        sb.append("\nTotal: ").append(docs.size());
 
         int limit = docs.size();
         if (limit > 20) {
@@ -331,6 +332,11 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
                     id = jo.get("id");
                 }
                 sb.append("ID: ").append(id != null ? String.valueOf(id) : "(unknown)");
+
+                Object receivedAt = jo.get("received_at");
+                if (receivedAt != null) {
+                    sb.append("\n   received_at: ").append(String.valueOf(receivedAt));
+                }
             } else {
                 sb.append(String.valueOf(item));
             }
@@ -339,6 +345,8 @@ public class ExtensionCustomLogic extends ExtensionAdapter {
         if (docs.size() > limit) {
             sb.append("\n\nShowing first ").append(limit).append(" records.");
         }
+
+        sb.append("\n--------------------");
 
         sendTextToAdmin(sb.toString(), appId);
     }
